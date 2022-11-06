@@ -25,38 +25,35 @@ class MyApp extends StatelessWidget {
   }
 }
 
-enum City {
-  owerri,
-  lagos,
-  aba,
-}
+const names = [
+  'fred',
+  'peace',
+  'goodness',
+  'ifeanyi',
+  'joy',
+  'divine',
+  'faith',
+  'glad',
+  'uchechi',
+  'bright',
+  'dera',
+  'alice',
+];
 
-typedef WeatherEmoji = String;
-Future<WeatherEmoji> getWeather(City city) {
-  return Future.delayed(
-      const Duration(seconds: 2),
-      () =>
-          {
-            City.aba: 'rainy ',
-            City.lagos: 'sunny',
-            City.owerri: 'dry',
-          }[city] ??
-          'no city');
-}
-
-//ui reads and writes from this one
-final currentCityProvider = StateProvider<City?>(
-  (ref) => null,
+final tickerProvider = StreamProvider(
+  (ref) => Stream.periodic(
+    const Duration(seconds: 2),
+    (i) => i + 1,
+  ),
 );
-const unKonwnWeatherEmoji = 'no such weather';
-//Ui reads this one
-final weatherProvider = FutureProvider<WeatherEmoji>((ref) {
-  final city = ref.watch(currentCityProvider);
-  if (city != null) {
-    return getWeather(city);
-  } else {
-    return unKonwnWeatherEmoji;
-  }
+
+final namesProvider = StreamProvider((ref) {
+  return ref.watch(tickerProvider.stream).map(
+        (event) => names.getRange(
+          0,
+          event,
+        ),
+      );
 });
 
 class MyHomePage extends ConsumerWidget {
@@ -64,50 +61,26 @@ class MyHomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentWeather = ref.watch(
-      weatherProvider,
-    );
+    final names = ref.watch(namesProvider);
+
     return Scaffold(
         appBar: AppBar(
           title: const Text('Weather'),
         ),
-        body: Column(
-          children: [
-            currentWeather.when(
-              data: (data) {
-                return Text(
-                  data,
-                  style: const TextStyle(fontSize: 40),
-                );
-              },
-              error: (_, __) {
-                return const Text('no such data');
-              },
-              loading: () => const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: CircularProgressIndicator(),
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                  itemCount: City.values.length,
-                  itemBuilder: (context, value) {
-                    final city = City.values[value];
-                    final isSelected = city == ref.watch(currentCityProvider);
-                    return ListTile(
-                      title: Text(city.toString()),
-                      trailing: isSelected ? const Icon(Icons.check) : null,
-                      onTap: () {
-                        ref
-                            .read(
-                              currentCityProvider.notifier,
-                            )
-                            .state = city;
-                      },
-                    );
-                  }),
-            ),
-          ],
+        body: names.when(
+          data: ((data) {
+            return ListView.builder(
+                itemCount: data.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(
+                      data.elementAt(index),
+                    ),
+                  );
+                });
+          }),
+          error: (error, stackTrace) => const Text('reached the end '),
+          loading: () => const Center(child: CircularProgressIndicator()),
         ));
   }
 }
